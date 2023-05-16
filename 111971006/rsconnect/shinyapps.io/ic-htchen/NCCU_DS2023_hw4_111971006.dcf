@@ -5,10 +5,9 @@ account: ic-htchen
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 9102375
-bundleId: 7215377
+bundleId: 7225635
 url: https://ic-htchen.shinyapps.io/NCCU_DS2023_hw4_111971006/
-when: 1684040076.23183
-lastSyncTime: 1684040076.23184
+when: 1684258347.98626
+lastSyncTime: 1684258347.98627
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .RData|ggvisExample/server.r|ggvisExample/ui.r|images/CA.png|images/PCA.png|images/shinyapp_on_rstudio_2_org.png|images/shinyapp_on_rstudio_2.png|images/shinyapp_on_rstudio.png|pca.R|README.md

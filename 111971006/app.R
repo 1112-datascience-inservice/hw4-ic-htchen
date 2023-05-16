@@ -7,16 +7,28 @@ library(FactoMineR)
 library(factoextra)
 
 ui <- navbarPage(
-  "HW4",
+  "111971006 - HW4",
   tabPanel("PCA", id = "pca_tab",
-           sidebarPanel(
-             width = 6,
-             numericInput("ncomp1", "First PCA :", min = 1, max = 4, value = 1),
-             numericInput("ncomp2", "Second PCA：", min = 1, max = 4, value = 2),
-             actionButton("calculate", "Calculate PCA")
+           fluidRow(
+             column(
+               width = 6,
+               sidebarPanel(
+                 width = 12,
+                 numericInput("ncomp1", "First PCA :", min = 1, max = 4, value = 1),
+                 numericInput("ncomp2", "Second PCA：", min = 1, max = 4, value = 2),
+                 actionButton("calculate", "Calculate PCA")
+               )
+             ),
+             column(
+               width = 6,
+               mainPanel(
+                 h3("Explained Variance (PCA)"),
+                 tableOutput("explained_variance_pca")
+               )
+             )
            ),
            mainPanel(
-             plotlyOutput("pca_plot", width = "800px", height = "800px")
+             plotlyOutput("pca_plot", width = "800px", height = "600px")
            )
   ),
   tabPanel("CA", id = "ca_tab",
@@ -64,6 +76,20 @@ server <- function(input, output, session) {
     ggplotly(g)
   })
   
+  # Calculate explained variance
+  explained_variance <- reactive({
+    pca <- pca_data()$pca
+    variance <- pca$sdev^2
+    explained_var <- variance / sum(variance) * 100
+    data.frame(Principal_Component = paste0("PC", 1:length(explained_var)),
+               Explained_Variance = round(explained_var, 2))
+  })
+  
+  # Render explained variance table
+  output$explained_variance_pca <- renderTable({
+    explained_variance()
+  })
+  
   # CA
   # Perform CA analysis
   ca_data <- reactive({
@@ -76,16 +102,18 @@ server <- function(input, output, session) {
   output$ca_plot <- renderPlot({
     ca_result <- ca_data()
     
+    
     # Convert eigenvalues to numeric
     eig_val1 <- as.numeric(ca_result$eig[1, 2])
     eig_val2 <- as.numeric(ca_result$eig[2, 2])
     
     result <- CA(iris[, -5], graph = FALSE)
     plot(result$row$coord[, 1], result$row$coord[, 2],
-           col = iris$Species, pch = 16,
-           xlab = paste("Dim1 (", round(result$eig[1, "percentage of variance"], 1), "%)", sep = ""),
-           ylab = paste("Dim2 (", round(result$eig[2, "percentage of variance"], 1), "%)", sep = ""))
-    })
+         col = iris$Species, pch = 16,
+         xlab = paste("Dim1 (", round(result$eig[1, "percentage of variance"], 1), "%)", sep = ""),
+         ylab = paste("Dim2 (", round(result$eig[2, "percentage of variance"], 1), "%)", sep = ""))
+  })
+  
 }
 
 shinyApp(ui, server)
