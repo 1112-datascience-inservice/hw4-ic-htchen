@@ -28,17 +28,59 @@ ui <- navbarPage(
              )
            ),
            mainPanel(
-             plotlyOutput("pca_plot", width = "800px", height = "600px")
+             plotlyOutput("pca_plot", width = "800px", height = "600px"),
+             h3("PCA SUMMARY"),
+             tableOutput("pca_summary"),
+             h3("ROTATION TABLE"),
+             tableOutput("rotation_table")
            )
   ),
   tabPanel("CA", id = "ca_tab",
+           fluidRow(
+             column(
+               width = 5,
+               sliderInput("point_num", "Number of Points:", min = 1, max = 150, value = 120)
+               # numericInput("point_num", "Number of Points:", min = 1, max = 150, value = 50)
+             ),
+             column(
+               width = 7,
+               h3("Explained Variance (CA)"),
+               tableOutput("explained_variance_ca")
+             )
+           ),
            mainPanel(
-             plotOutput(outputId = "ca_plot")
+             plotOutput(outputId = "ca_plot",width = "800px", height = "600px")
            )
   )
 )
 
 server <- function(input, output, session) {
+  # PCA Result Summary
+  output$pca_summary <- renderTable({
+    pca <- pca_data()$pca
+    importance <- data.frame(
+      "Standard deviation" = pca$sdev,
+      "Proportion of Variance" = pca$sdev^2 / sum(pca$sdev^2),
+      "Cumulative Proportion" = cumsum(pca$sdev^2 / sum(pca$sdev^2))
+    )
+    row.names(importance) <- paste0("PC", 1:length(pca$sdev))
+    importance
+  })
+  
+  # Rotation Table
+  output$rotation_table <- renderTable({
+    pca <- pca_data()$pca
+    rotation <- pca$rotation
+    row.names(rotation) <- names(iris)[1:4]
+    rotation
+  })
+  
+  
+  output$iris_table <- renderTable({
+    head(iris, 10)
+  })
+  
+  
   # Reactive values to store the selected PCA components
   selected_pca <- reactiveValues(ncomp1 = 1, ncomp2 = 2)
   
@@ -98,22 +140,45 @@ server <- function(input, output, session) {
     return(ca_result)
   })
   
+  # Reactive value to track the selected number of points
+  selected_points <- reactive({
+    input$point_num
+  })
+  
   # Render CA plot
   output$ca_plot <- renderPlot({
     ca_result <- ca_data()
-    
     
     # Convert eigenvalues to numeric
     eig_val1 <- as.numeric(ca_result$eig[1, 2])
     eig_val2 <- as.numeric(ca_result$eig[2, 2])
     
-    result <- CA(iris[, -5], graph = FALSE)
-    plot(result$row$coord[, 1], result$row$coord[, 2],
-         col = iris$Species, pch = 16,
+    result <- ca_result
+    plot(result$row$coord[1:selected_points(), 1], result$row$coord[1:selected_points(), 2],
+         col = iris$Species[1:selected_points()], pch = 16,
          xlab = paste("Dim1 (", round(result$eig[1, "percentage of variance"], 1), "%)", sep = ""),
          ylab = paste("Dim2 (", round(result$eig[2, "percentage of variance"], 1), "%)", sep = ""))
+    
+    # Add crosshair dashed lines
+    abline(v = 0, lty = "dashed")
+    abline(h = 0, lty = "dashed")
+    
   })
-  
+  # Render explained variance table for CA
+  output$explained_variance_ca <- renderTable({
+    ca_result <- ca_data()
+    
+    eig_values <- round(ca_result$eig[, "eigenvalue"], 3)
+    eig_percent <- round(ca_result$eig[, "percentage of variance"], 3)
+    cumulative_percent <- cumsum(eig_percent)
+    
+    data.frame(
+      Dimension = paste0("Dim.", 1:length(eig_values)),
+      Variance = eig_values,
+      "% of var." = eig_percent,
+      "Cumulative % of var." = cumulative_percent
+    )
+  })
 }
 
 shinyApp(ui, server)
